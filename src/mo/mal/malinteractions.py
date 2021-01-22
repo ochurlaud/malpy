@@ -589,51 +589,7 @@ class ProgressConsumerHandler(ConsumerHandler):
 #            raise InvalidIPStageError("In %s. Expected PROGRESS_RESPONSE. Got %s" %
 #                                      (self.__class__.__name__, ip_stage))
 
-
 class PubSubProviderHandler(ProviderHandler):
-
-    def receive_registration_message(self):
-        message = self.receive_message()
-        self.define_header(message.header)
-        ip_stage = message.header.ip_stage
-        is_error_message = message.header.is_error_message
-        if not is_error_message and ip_stage == MAL_IP_STAGES.PUBSUB_REGISTER:
-            return message
-        elif not is_error_message and ip_stage == MAL_IP_STAGES.PUBSUB_DEREGISTER:
-            return message
-        else:
-            raise InvalidIPStageError("In %s. Expected PUBSUB_REGISTER or PUBSUB_DEREGISTER. Got %s" %
-                                      (self.__class__.__name__, ip_stage))
-
-    def register_ack(self, body):
-        header = self.create_message_header(MAL_IP_STAGES.PUBSUB_REGISTER_ACK)
-        message = MALMessage(header=header, msg_parts=body)
-        self.send_message(message)
-
-    def register_error(self, body):
-        header = self.create_message_header(MAL_IP_STAGES.PUBSUB_REGISTER_ACK_ERROR)
-        message = MALMessage(header=header, msg_parts=body)
-        self.send_message(message)
-
-    def deregister_ack(self, body):
-        header = self.create_message_header(MAL_IP_STAGES.PUBSUB_DEREGISTER_ACK)
-        message = MALMessage(header=header, msg_parts=body)
-        self.send_message(message)
-
-    def deregister_error(self, body):
-        header = self.create_message_header(MAL_IP_STAGES.PUBSUB_DEREGISTER_ACK_ERROR)
-        message = MALMessage(header=header, msg_parts=body)
-        self.send_message(message)
-
-    def notify(self, body):
-        header = self.create_message_header(MAL_IP_STAGES.PUBSUB_NOTIFY)
-        message = MALMessage(header=header, msg_parts=body)
-        self.send_message(message)
-
-    def notify_error(self, body):
-        header = self.create_message_header(MAL_IP_STAGES.PUBSUB_NOTIFY_ERROR)
-        message = MALMessage(header=header, msg_parts=body)
-        self.send_message(message)
 
     def publish_register(self, body):
         header = self.create_message_header(MAL_IP_STAGES.PUBSUB_PUBLISH_REGISTER)
@@ -673,6 +629,9 @@ class PubSubProviderHandler(ProviderHandler):
         self.send_message(message)
 
     def receive_publish_error(self):
+        ''' The publish error message is sent asynchronously by the broken: the
+        method shall therefore be called in another thread, process or queue.
+        '''
         message = self.receive_message()
         ip_stage = message.header.ip_stage
         is_error_message = message.header.is_error_message
@@ -684,6 +643,25 @@ class PubSubProviderHandler(ProviderHandler):
 
 
 class PubSubBrokerHandler(ProviderHandler):
+    def receive_any_message(self):
+        message = self.receive_message()
+
+    def receive_any_registration_message(self):
+        message = self.receive_message()
+        self.define_header(message.header)
+        ip_stage = message.header.ip_stage
+        is_error_message = message.header.is_error_message
+        if not is_error_message and ip_stage == MAL_IP_STAGES.PUBSUB_REGISTER:
+            return message
+        elif not is_error_message and ip_stage == MAL_IP_STAGES.PUBSUB_DEREGISTER:
+            return message
+        if not is_error_message and ip_stage == MAL_IP_STAGES.PUBSUB_PUBLISH_REGISTER:
+            return message
+        elif not is_error_message and ip_stage == MAL_IP_STAGES.PUBSUB_PUBLISH_DEREGISTER:
+            return message
+        else:
+            raise InvalidIPStageError("In %s. Expected PUBSUB_REGISTER or PUBSUB_DEREGISTER. Got %s" %
+                                      (self.__class__.__name__, ip_stage))
 
     def receive_registration_message(self):
         message = self.receive_message()
@@ -778,6 +756,10 @@ class PubSubBrokerHandler(ProviderHandler):
         header = self.create_message_header(MAL_IP_STAGES.PUBSUB_PUBLISH_ERROR)
         message = MALMessage(header=header, msg_parts=body)
         self.send_message(message)
+
+
+class PubSubBrokerlessProviderHandler(PubSubProviderHandler,PubSubBrokerHandler):
+    pass
 
 
 class PubSubConsumerHandler(ConsumerHandler):
