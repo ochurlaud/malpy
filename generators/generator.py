@@ -6,7 +6,6 @@ import yaml
 
 MO_XML = {
     'MAL': "../xml/CCSDS-MO-MAL.xml",
-    'COM': "../xml/CCSDS-MO-COM.xml",
     'MC': "../xml/CCSDS-MO-MC.xml"
     }
 MAL_NS = "http://www.ccsds.org/schema/ServiceSchema"
@@ -17,14 +16,9 @@ IMPORTS = {
         'from enum import IntEnum',
         'from abc import ABC'
         ],
-    'COM': [
-        'from enum import IntEnum',
-        'from malpy.mo import mal'
-        ],
     'MC': [
         'from enum import IntEnum',
-        'from malpy.mo import mal',
-        'from malpy.mo import com'
+        'from malpy.mo import mal'
         ]
     }
 PARAMFILE = 'parameters.yaml'
@@ -973,7 +967,7 @@ class MALTypeModuleGenerator(object):
 
 
 if __name__ == "__main__":
-    for areaname in ['MAL', 'COM', 'MC']:
+    for areaname in ['MAL', 'MC']:
         definitionfilepath = MO_XML[areaname]
         generator = MALTypeModuleGenerator(areaname.lower(), definitionfilepath, OUTFILE)
         generator.generate()
